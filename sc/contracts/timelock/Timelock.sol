@@ -11,23 +11,27 @@
 // XXX: pragma solidity ^0.5.16;
 pragma solidity >=0.8.0;
 
-// XXX: import "./SafeMath.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "../interfaces/ISafeStorage.sol";
+import "../libs/TimelockLibrary.sol";
 
 contract Timelock {
     using SafeMath for uint;
 
-    event NewAdmin(address indexed newAdmin);
-    event NewPendingAdmin(address indexed newPendingAdmin);
-    event NewDelay(uint indexed newDelay);
-    event CancelTransaction(bytes32 indexed txHash, address indexed target, uint value, string signature,  bytes data, uint eta);
-    event ExecuteTransaction(bytes32 indexed txHash, address indexed target, uint value, string signature,  bytes data, uint eta);
-    event QueueTransaction(bytes32 indexed txHash, address indexed target, uint value, string signature, bytes data, uint eta);
+    struct Transaction {
+        address callFrom;
+        bytes32 hash;
+        address target;
+        uint value;
+        string signature;
+        bytes data;
+        uint eta;
+    }
 
-    uint public constant GRACE_PERIOD = 14 days;
     uint public constant MINIMUM_DELAY = 6 hours;
     uint public constant MAXIMUM_DELAY = 30 days;
 
+    address public safeStorage;
     address public admin;
     address public pendingAdmin;
     uint public delay;
@@ -35,22 +39,24 @@ contract Timelock {
 
     mapping (bytes32 => bool) public queuedTransactions;
 
-    constructor(address admin_, uint delay_) public {
+    event NewAdmin(address indexed newAdmin);
+    event NewPendingAdmin(address indexed newPendingAdmin);
+    event NewDelay(uint indexed newDelay);
+    event CancelTransaction(bytes32 indexed hash, address indexed target, uint value, string signature, bytes data, uint eta);
+    event ExecuteTransaction(bytes32 indexed hash, address indexed target, uint value, string signature, bytes data, uint eta);
+    event QueueTransaction(bytes32 indexed hash, address indexed target, uint value, string signature, bytes data, uint eta);
+
+    constructor(address _safeStorage, address admin_, uint delay_) public {
         require(delay_ >= MINIMUM_DELAY, "Timelock::constructor: Delay must exceed minimum delay.");
         require(delay_ <= MAXIMUM_DELAY, "Timelock::constructor: Delay must not exceed maximum delay.");
 
+        safeStorage = _safeStorage;
         admin = admin_;
         delay = delay_;
         admin_initialized = false;
     }
 
-    // XXX: function() external payable { }
-    receive() external payable { }
-
-    fallback() external payable { }
-
-    function setDelay(uint delay_) public {
-        require(msg.sender == address(this), "Timelock::setDelay: Call must come from Timelock.");
+    function setDelay(uint delay_) public onlyThis {
         require(delay_ >= MINIMUM_DELAY, "Timelock::setDelay: Delay must exceed minimum delay.");
         require(delay_ <= MAXIMUM_DELAY, "Timelock::setDelay: Delay must not exceed maximum delay.");
         delay = delay_;
@@ -79,44 +85,48 @@ contract Timelock {
         emit NewPendingAdmin(pendingAdmin);
     }
 
-    function queueTransaction(address target, uint value, string memory signature, bytes memory data, uint eta) public onlyAdmin returns (bytes32) {
-        require(eta >= getBlockTimestamp().add(delay), "Timelock::queueTransaction: Estimated execution block must satisfy delay.");
+    function queueTransaction(Transaction memory _tx) public onlyAdmin {
+        require(_tx.eta >= getBlockTimestamp().add(delay), "Timelock::queueTransaction: Estimated execution block must satisfy delay.");
 
-        bytes32 txHash = keccak256(abi.encode(target, value, signature, data, eta));
-        queuedTransactions[txHash] = true;
+        queuedTransactions[_tx.hash] = true;
 
-        emit QueueTransaction(txHash, target, value, signature, data, eta);
-        return txHash;
+        emit QueueTransaction(_tx.hash, _tx.target, _tx.value, _tx.signature, _tx.data, _tx.eta);
     }
 
-    function cancelTransaction(address target, uint value, string memory signature, bytes memory data, uint eta) public onlyAdmin {
-        bytes32 txHash = keccak256(abi.encode(target, value, signature, data, eta));
-        queuedTransactions[txHash] = false;
+    function cancelTransaction(Transaction memory _tx) public onlyAdmin {
+        queuedTransactions[_tx.hash] = false;
 
-        emit CancelTransaction(txHash, target, value, signature, data, eta);
+        emit CancelTransaction(_tx.hash, _tx.target, _tx.value, _tx.signature, _tx.data, _tx.eta);
     }
 
-    function executeTransaction(address target, uint value, string memory signature, bytes memory data, uint eta) public payable onlyAdmin returns (bytes memory) {
-        bytes32 txHash = keccak256(abi.encode(target, value, signature, data, eta));
-        require(queuedTransactions[txHash], "Timelock::executeTransaction: Transaction hasn't been queued.");
-        require(getBlockTimestamp() >= eta, "Timelock::executeTransaction: Transaction hasn't surpassed time lock.");
-        require(getBlockTimestamp() <= eta.add(GRACE_PERIOD), "Timelock::executeTransaction: Transaction is stale.");
+    function executeTransaction(Transaction memory _tx) public payable onlyAdmin returns (bytes memory) {
+        require(queuedTransactions[_tx.hash], "Timelock::executeTransaction: Transaction hasn't been queued.");
+        require(getBlockTimestamp() >= _tx.eta, "Timelock::executeTransaction: Transaction hasn't surpassed time lock.");
+        require(getBlockTimestamp() <= _tx.eta.add(TimelockLibrary.GRACE_PERIOD), "Timelock::executeTransaction: Transaction is stale.");
 
-        queuedTransactions[txHash] = false;
+        queuedTransactions[_tx.hash] = false;
 
         bytes memory callData;
-
-        if (bytes(signature).length == 0) {
-            callData = data;
+        if (bytes(_tx.signature).length == 0) {
+            callData = _tx.data; // sig + data
         } else {
-            callData = abi.encodePacked(bytes4(keccak256(bytes(signature))), data);
+            callData = abi.encodePacked(bytes4(keccak256(bytes(_tx.signature))), _tx.data);
+        }
+
+        if (_tx.callFrom == safeStorage) {
+            // solium-disable-next-line security/no-call-value
+            (bool success, bytes memory returnData) = ISafeStorage(safeStorage).execute{value: msg.value}(_tx.target, _tx.value, callData);
+
+            emit ExecuteTransaction(_tx.hash, _tx.target, _tx.value, _tx.signature, _tx.data, _tx.eta);
+
+            return returnData;
         }
 
         // solium-disable-next-line security/no-call-value
-        (bool success, bytes memory returnData) = target.call{value: value}(callData);
+        (bool success, bytes memory returnData) = _tx.target.call{value: _tx.value}(callData);
         require(success, "Timelock::executeTransaction: Transaction execution reverted.");
 
-        emit ExecuteTransaction(txHash, target, value, signature, data, eta);
+        emit ExecuteTransaction(_tx.hash, _tx.target, _tx.value, _tx.signature, _tx.data, _tx.eta);
 
         return returnData;
     }
@@ -128,6 +138,11 @@ contract Timelock {
 
     modifier onlyAdmin() {
         require(msg.sender == admin, "Timelock::executeTransaction: Call must come from admin.");
+        _;
+    }
+
+    modifier onlyThis() {
+        require(msg.sender == address(this), "Call must come from this contract.");
         _;
     }
 }
