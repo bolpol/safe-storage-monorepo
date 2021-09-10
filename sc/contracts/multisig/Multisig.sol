@@ -35,6 +35,8 @@ contract Multisig is Signable {
         address callFrom;
 
         string description;
+
+        uint256 initiatedAt;
     }
 
     mapping (uint => Proposal) public proposals;
@@ -113,6 +115,7 @@ contract Multisig is Signable {
         proposal.proposer = msg.sender;
         proposal.callFrom = callFrom;
         proposal.signs = 1;
+        proposal.initiatedAt = block.timestamp;
 
         proposalCount++;
 
@@ -209,5 +212,49 @@ contract Multisig is Signable {
         }
 
         emit Cancelled(_proposalId);
+    }
+
+    function getActions(uint _proposalId)
+        external
+        view
+        returns (
+            address[] memory targets,
+            uint256[] memory values,
+            string[] memory signatures,
+            bytes[] memory calldatas
+        )
+    {
+        Proposal storage p = proposals[_proposalId];
+        return (p.targets, p.values, p.signatures, p.calldatas);
+    }
+
+    function getStatus(uint _proposalId) public view returns (Status) {
+        Proposal memory p = proposals[_proposalId];
+
+        if (p.status == Status.CANCELLED) {
+            return Status.CANCELLED;
+        }
+        if (p.status == Status.EXECUTED) {
+            return Status.EXECUTED;
+        }
+        if (p.signs > 0) {
+            if (p.eta != 0) {
+                if (p.eta + TimelockLibrary.GRACE_PERIOD <= block.timestamp) {
+                    return Status.CANCELLED;
+                }
+            } else {
+                if (p.initiatedAt + TIME_FOR_SIGNING < block.timestamp) {
+                    return Status.CANCELLED;
+                }
+            }
+
+            if (requiredSigns() == p.signs) {
+                return Status.QUEUED;
+            }
+
+            return Status.INITIALIZED;
+        }
+
+        return Status.EMPTY;
     }
 }
