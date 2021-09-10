@@ -58,46 +58,6 @@ contract Multisig is Signable {
         timelock = _timelock;
     }
 
-    function getStatus(uint _proposalId) public view returns (Status) {
-        Proposal memory p = proposals[_proposalId];
-
-        if (p.status == Status.CANCELLED) {
-            return Status.CANCELLED;
-        }
-        if (p.status == Status.EXECUTED) {
-            return Status.EXECUTED;
-        }
-        if (p.signs > 0) {
-            if (p.eta != 0) {
-                if (p.eta + TimelockLibrary.GRACE_PERIOD <= block.timestamp) {
-                    return Status.CANCELLED;
-                }
-            }
-
-            if (requiredSigns() == p.signs) {
-                return Status.QUEUED;
-            }
-
-            return Status.INITIALIZED;
-        }
-
-        return Status.EMPTY;
-    }
-
-    function getActions(uint _proposalId)
-        public
-        view
-        returns (
-            address[] memory targets,
-            uint256[] memory values,
-            string[] memory signatures,
-            bytes[] memory calldatas
-        )
-    {
-        Proposal storage p = proposals[_proposalId];
-        return (p.targets, p.values, p.signatures, p.calldatas);
-    }
-
     function createAndSign(
         address[] memory targets,
         uint[] memory values,
