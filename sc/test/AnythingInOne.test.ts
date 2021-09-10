@@ -85,7 +85,7 @@ describe("ALL", function () {
         OWNER1 = await OWNER1_SIGNER.getAddress()
         OWNER2 = await OWNER2_SIGNER.getAddress()
         OWNER3 = await OWNER3_SIGNER.getAddress()
-        OWNER4 = await OWNER3_SIGNER.getAddress()
+        OWNER4 = await OWNER4_SIGNER.getAddress()
         OTHER = await OTHER_SIGNER.getAddress()
 
         const SafeStorage = await ethers.getContractFactory("SafeStorage");
@@ -226,41 +226,15 @@ describe("ALL", function () {
 
             let proposal = await multisig.proposals(Number(proposalId))
 
-            // assert.equal(Number(proposal.id), Number(proposalId), "proposal.id")
             assert.notEqual(Number(proposal.eta), 0, "proposal.eta")
 
-            // const events = (await res.wait()).events;
-
-            // events.map(({ args, event }: any) => {
-            //     if (event == "Withdrawn") {
-            //         console.log(`Withdrawn:`);
-            //         console.log(args[0].toString());
-            //         console.log(args[1].toString());
-            //         console.log("");
-            //     }
-            // });
-
-            console.log(await time)
-
-            let delay = Number(await timelock.delay());
-
-            console.log(Number(proposal.eta))
-            console.log(delay)
-            console.log(Number(proposal.eta) + 1000 + delay)
-
             await time.increaseTo(Number(proposal.eta) + 1000);
-            //await time.advanceBlockTo(Number(await time.latestBlock()) + 1)
 
             assert.equal(await multisig.getStatus(Number(proposalId)), status.QUEUED, "status.QUEUED")
 
             await multisig.connect(OWNER3_SIGNER).execute(Number(proposalId), false, {value: 1})
 
             assert.equal(await multisig.getStatus(Number(proposalId)), status.EXECUTED, "status.EXECUTED")
-
-            // await expectRevert(
-            //     multisig.connect(OWNER3_SIGNER).execute(Number(proposalId), {value: 1}),
-            //     'bed str'
-            // )
         })
 
         it('create and execute proposal, withdraw erc20', async () => {
@@ -271,20 +245,11 @@ describe("ALL", function () {
 
             assert.equal(Number(await erc20Token.balanceOf(safeStorage.address)), 100, 'Wrong balance')
 
-            // const { CoerceFunc } = ethers.utils.AbiCoder.CoerceFunc
-            let abiCoder = new ethers.utils.AbiCoder()
-
-            console.log(OTHER)
-            console.log(abiCoder.encode(['address', 'uint'], [OTHER, 100]))
-
             let targets: Array<string> = [erc20Token.address]
             let values: Array<string|number> = [0]
-            // let signatures: Array<string> = ['name()']
-            // let calldatas: Array<string> = ['0x']
-            // let signatures: Array<string> = ['transfer(address,uint)']
-            let signatures: Array<string> = ['']
+            let signatures: Array<string> = ['transfer(address,uint)']
             // let calldatas: Array<string> = [`${abiCoder.encode(['address', 'uint'], [OTHER, 100])}`]
-            let calldatas: Array<string> = [`0xa9059cbb00000000000000000000000015d34aaf54267db7d7c367839aaf71a00a2c6a650000000000000000000000000000000000000000000000000000000000000064`]
+            let calldatas: Array<string> = [`0xa9059cbb0000000000000000000000009965507d1a55bcc2695c58ba16fb37d819b0a4dc0000000000000000000000000000000000000000000000000000000000000064`]
             let description: string = 'transfer ERC20 tokens'
             let callFrom: string = safeStorage.address
 
@@ -308,37 +273,13 @@ describe("ALL", function () {
             let proposal = await multisig.proposals(Number(proposalId))
             let actions = await multisig.getActions(Number(proposalId))
 
-            console.log(proposal)
-            console.log(actions)
-
-            // assert.equal(Number(proposal.id), Number(proposalId), "proposal.id")
             assert.notEqual(Number(proposal.eta), 0, "proposal.eta")
 
-            // const events = (await res.wait()).events;
-
-            // events.map(({ args, event }: any) => {
-            //     if (event == "Withdrawn") {
-            //         console.log(`Withdrawn:`);
-            //         console.log(args[0].toString());
-            //         console.log(args[1].toString());
-            //         console.log("");
-            //     }
-            // });
-
-            let delay = Number(await timelock.delay());
-
-            console.log(Number(proposal.eta))
-            console.log(delay)
-            console.log(Number(proposal.eta) + 1000 + delay)
-
             await time.increaseTo(Number(proposal.eta) + 1000);
-            //await time.advanceBlockTo(Number(await time.latestBlock()) + 1)
 
             assert.equal(await multisig.getStatus(Number(proposalId)), status.QUEUED, "status.QUEUED")
 
             await multisig.connect(OWNER3_SIGNER).execute(Number(proposalId), false, {value: 0})
-
-            // await expectRevert(multisig.connect(OWNER3_SIGNER).execute(Number(proposalId), false, {value: 0}), 'xxx')
 
             console.log(Number(await erc20Token.balanceOf(safeStorage.address)))
             assert.equal(Number(await erc20Token.balanceOf(OTHER)), 100, 'Wrong balance receipt')
