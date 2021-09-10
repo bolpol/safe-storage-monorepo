@@ -1,7 +1,6 @@
 pragma solidity ^0.8.4;
 
 contract Signable {
-
     uint256 constant public MIN_NUM_SIGNERS = 4;
     uint256 constant public MAX_NUM_SIGNERS = 100;
     uint256 constant public TIME_FOR_SIGNING = 1 days;
