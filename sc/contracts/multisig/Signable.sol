@@ -34,7 +34,9 @@ contract Signable {
             : _requiredSigns;
     }
 
-    function setRequiredSigns(uint _signs) public {
+    // @dev should be called if it is possible as second method in batch transaction
+    // on add/remove call.
+    function setRequiredSigns(uint _signs) public onlyThis {
         uint consRS = totalSigners * 3 / 4;
 
         require(_signs <= totalSigners && _signs >= consRS, "CONS_REQU_SIGNS");
