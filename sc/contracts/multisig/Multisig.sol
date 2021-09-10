@@ -38,6 +38,7 @@ contract Multisig is Signable {
     }
 
     mapping (uint => Proposal) public proposals;
+    mapping (address => mapping (uint => bool)) public votedBy;
 
     /// @notice The total number of proposals
     uint public proposalCount;
@@ -127,6 +128,9 @@ contract Multisig is Signable {
              getStatus(_proposalId) == Status.INITIALIZED,
             "Wrong status"
         );
+        require(!votedBy[msg.sender][_proposalId], "Already signed");
+
+        votedBy[msg.sender][_proposalId] = true;
 
         Proposal storage proposal = proposals[_proposalId];
         proposal.signs++;
