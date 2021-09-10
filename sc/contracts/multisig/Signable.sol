@@ -2,18 +2,53 @@ pragma solidity ^0.8.4;
 
 contract Signable {
 
-    uint256 constant public MIN_NUM_SIGNERS = 3;
-    uint256 constant public MAX_NUM_SIGNERS = 1000;
+    uint256 constant public MIN_NUM_SIGNERS = 4;
+    uint256 constant public MAX_NUM_SIGNERS = 100;
 
     uint256 public totalSigners;
 
+    uint256 private _requiredSigns;
+
     mapping (address => bool) private _signers;
+
+    event SignerChanged(address prev, address next);
+
+    constructor(address[] memory _accounts) {
+        require(_accounts.length >= MIN_NUM_SIGNERS, "Num signers consensus not reached");
+
+        for (uint i; i < _accounts.length; i++) {
+            _setSigner(_accounts[i], true);
+        }
+
+        totalSigners += _accounts.length;
+        _requiredSigns = 3;
+    }
+
+    function requiredSigns() public view returns (uint) {
+        if (_requiredSigns > totalSigners) {
+            return _requiredSigns;
+        }
+
+        return (_requiredSigns < totalSigners * 3 / 4)
+            ? totalSigners * 3 / 4
+            : _requiredSigns;
+    }
+
+    function setRequiredSigns(uint _signs) public {
+        uint consRS = totalSigners * 3 / 4;
+
+        require(_signs <= totalSigners && _signs >= consRS, "CONS_REQU_SIGNS");
+
+        _requiredSigns = _signs;
+    }
 
     function addSigner(address _account) public onlyThis {
         _signers[_account] = true;
         totalSigners++;
 
         require(totalSigners <= MAX_NUM_SIGNERS, "NUM_SIGS_CONS");
+
+        emit SignerChanged(address(0), _account);
     }
 
     function removeSigner(address _account) public onlyThis {
@@ -21,17 +56,28 @@ contract Signable {
         totalSigners--;
 
         require(totalSigners >= MIN_NUM_SIGNERS, "NUM_SIGS_CONS");
+
+        emit SignerChanged(_account, address(0));
     }
 
     function flipSignerAddress(address _old, address _new) public {
         if (msg.sender != address(this)) {
             require(_old == msg.sender, "no flip rights");
         }
+
+        require(_signers[_old], "not signer");
         require(_old != _new, "the same address");
+        require(!_signers[_new], "already signer");
         require(_new != address(0), "zero address");
 
         _signers[_old] = false;
         _signers[_new] = true;
+
+        emit SignerChanged(_old, _new);
+    }
+
+    function _setSigner(address _account, bool _status) private {
+        _signers[_account] = _status;
     }
 
     modifier onlySigner() {

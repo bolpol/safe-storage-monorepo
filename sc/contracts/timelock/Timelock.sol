@@ -1,21 +1,12 @@
-// COPIED FROM https://github.com/compound-finance/compound-protocol/blob/master/contracts/Governance/GovernorAlpha.sol
-// Copyright 2020 Compound Labs, Inc.
-// Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
-// 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
-// 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
-// 3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-//
-// Ctrl+f for XXX to see all the modifications.
-
-// XXX: pragma solidity ^0.5.16;
 pragma solidity >=0.8.0;
 
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "../interfaces/ISafeStorage.sol";
 import "../libs/TimelockLibrary.sol";
 
-contract Timelock {
+
+contract Timelock is Ownable {
     using SafeMath for uint;
 
     struct Transaction {
@@ -46,14 +37,20 @@ contract Timelock {
     event ExecuteTransaction(bytes32 indexed hash, address indexed target, uint value, string signature, bytes data, uint eta);
     event QueueTransaction(bytes32 indexed hash, address indexed target, uint value, string signature, bytes data, uint eta);
 
-    constructor(address _safeStorage, address admin_, uint delay_) public {
+    constructor(address _safeStorage, address _initializer, uint delay_) public {
         require(delay_ >= MINIMUM_DELAY, "Timelock::constructor: Delay must exceed minimum delay.");
         require(delay_ <= MAXIMUM_DELAY, "Timelock::constructor: Delay must not exceed maximum delay.");
 
         safeStorage = _safeStorage;
-        admin = admin_;
+        admin = _initializer;
         delay = delay_;
         admin_initialized = false;
+    }
+
+    fallback() external payable { }
+
+    receive() external payable {
+        require(false, "Dont accept direct ether deposit");
     }
 
     function setDelay(uint delay_) public onlyThis {
@@ -64,28 +61,7 @@ contract Timelock {
         emit NewDelay(delay);
     }
 
-    function acceptAdmin() public {
-        require(msg.sender == pendingAdmin, "Timelock::acceptAdmin: Call must come from pendingAdmin.");
-        admin = msg.sender;
-        pendingAdmin = address(0);
-
-        emit NewAdmin(admin);
-    }
-
-    function setPendingAdmin(address pendingAdmin_) public {
-        // allows one time setting of admin for deployment purposes
-        if (admin_initialized) {
-            require(msg.sender == address(this), "Timelock::setPendingAdmin: Call must come from Timelock.");
-        } else {
-            require(msg.sender == admin, "Timelock::setPendingAdmin: First call must come from admin.");
-            admin_initialized = true;
-        }
-        pendingAdmin = pendingAdmin_;
-
-        emit NewPendingAdmin(pendingAdmin);
-    }
-
-    function queueTransaction(Transaction memory _tx) public onlyAdmin {
+    function queueTransaction(Transaction memory _tx) public onlyOwner {
         require(_tx.eta >= getBlockTimestamp().add(delay), "Timelock::queueTransaction: Estimated execution block must satisfy delay.");
 
         queuedTransactions[_tx.hash] = true;
@@ -93,29 +69,24 @@ contract Timelock {
         emit QueueTransaction(_tx.hash, _tx.target, _tx.value, _tx.signature, _tx.data, _tx.eta);
     }
 
-    function cancelTransaction(Transaction memory _tx) public onlyAdmin {
+    function cancelTransaction(Transaction memory _tx) public onlyOwner {
         queuedTransactions[_tx.hash] = false;
 
         emit CancelTransaction(_tx.hash, _tx.target, _tx.value, _tx.signature, _tx.data, _tx.eta);
     }
 
-    function executeTransaction(Transaction memory _tx) public payable onlyAdmin returns (bytes memory) {
+    function executeTransaction(Transaction memory _tx) public payable onlyOwner returns (bytes memory) {
         require(queuedTransactions[_tx.hash], "Timelock::executeTransaction: Transaction hasn't been queued.");
         require(getBlockTimestamp() >= _tx.eta, "Timelock::executeTransaction: Transaction hasn't surpassed time lock.");
         require(getBlockTimestamp() <= _tx.eta.add(TimelockLibrary.GRACE_PERIOD), "Timelock::executeTransaction: Transaction is stale.");
 
         queuedTransactions[_tx.hash] = false;
 
-        bytes memory callData;
-        if (bytes(_tx.signature).length == 0) {
-            callData = _tx.data; // sig + data
-        } else {
-            callData = abi.encodePacked(bytes4(keccak256(bytes(_tx.signature))), _tx.data);
-        }
+        // @dev it doesnt work anyway, so commented
 
         if (_tx.callFrom == safeStorage) {
             // solium-disable-next-line security/no-call-value
-            (bool success, bytes memory returnData) = ISafeStorage(safeStorage).execute{value: msg.value}(_tx.target, _tx.value, callData);
+            (bool success, bytes memory returnData) = ISafeStorage(safeStorage).execute{value: msg.value}(_tx.target, _tx.value, _tx.data);
 
             emit ExecuteTransaction(_tx.hash, _tx.target, _tx.value, _tx.signature, _tx.data, _tx.eta);
 
@@ -123,7 +94,7 @@ contract Timelock {
         }
 
         // solium-disable-next-line security/no-call-value
-        (bool success, bytes memory returnData) = _tx.target.call{value: _tx.value}(callData);
+        (bool success, bytes memory returnData) = _tx.target.call{value: _tx.value}(_tx.data);
         require(success, "Timelock::executeTransaction: Transaction execution reverted.");
 
         emit ExecuteTransaction(_tx.hash, _tx.target, _tx.value, _tx.signature, _tx.data, _tx.eta);
@@ -134,11 +105,6 @@ contract Timelock {
     function getBlockTimestamp() internal view returns (uint) {
         // solium-disable-next-line security/no-block-members
         return block.timestamp;
-    }
-
-    modifier onlyAdmin() {
-        require(msg.sender == admin, "Timelock::executeTransaction: Call must come from admin.");
-        _;
     }
 
     modifier onlyThis() {

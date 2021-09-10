@@ -15,13 +15,8 @@ contract Multisig is Signable {
     }
 
     struct Proposal {
-        /// @notice Unique id for looking up a proposal
-        uint id;
-
         // @dev actual signs
         uint256 signs;
-        // @dev required signs
-        uint256 reqsigns;
 
         Status status;
         /// @notice Creator of the proposal
@@ -49,12 +44,15 @@ contract Multisig is Signable {
 
     address public timelock;
 
-    constructor(address _timelock, address[] memory _accounts) {
+    event ProposalInitialized(uint id, address proposer);
+    event Signed(uint id, address signer);
+    event Executed(uint id);
+    event Cancelled(uint id);
+
+    constructor(address _timelock, address[] memory _accounts) Signable(_accounts) {
         require(_timelock != address(0), "Timelock zero");
-        require(_accounts.length >= MIN_NUM_SIGNERS, "Num signers consensus not reached");
 
         timelock = _timelock;
-        totalSigners += _accounts.length;
     }
 
     function getStatus(uint _proposalId) public view returns (Status) {
@@ -67,11 +65,13 @@ contract Multisig is Signable {
             return Status.EXECUTED;
         }
         if (p.signs > 0) {
-            if (p.eta + TimelockLibrary.GRACE_PERIOD <= block.timestamp) {
-                return Status.CANCELLED;
+            if (p.eta != 0) {
+                if (p.eta + TimelockLibrary.GRACE_PERIOD <= block.timestamp) {
+                    return Status.CANCELLED;
+                }
             }
 
-            if (p.reqsigns == p.signs) {
+            if (requiredSigns() == p.signs) {
                 return Status.QUEUED;
             }
 
@@ -86,7 +86,7 @@ contract Multisig is Signable {
         view
         returns (
             address[] memory targets,
-            uint[] memory values,
+            uint256[] memory values,
             string[] memory signatures,
             bytes[] memory calldatas
         )
@@ -103,9 +103,7 @@ contract Multisig is Signable {
         string memory description,
         address callFrom // Pass SAFE STORAGE address if want interact with it
     ) external onlySigner {
-        uint proposalId = proposalCount++;
-
-        Proposal storage proposal = proposals[proposalId];
+        Proposal memory proposal;
         proposal.targets = targets;
         proposal.values = values;
         proposal.signatures = signatures;
@@ -113,8 +111,15 @@ contract Multisig is Signable {
         proposal.description = description;
         proposal.proposer = msg.sender;
         proposal.callFrom = callFrom;
+        proposal.signs = 1;
 
-        proposalCount = proposalId;
+        proposalCount++;
+
+        uint proposalId = proposalCount;
+        proposals[proposalId] = proposal;
+
+        emit ProposalInitialized(proposalId, msg.sender);
+        emit Signed(proposalId, msg.sender);
     }
 
     function sign(uint _proposalId) external onlySigner {
@@ -125,7 +130,7 @@ contract Multisig is Signable {
 
         Proposal storage proposal = proposals[_proposalId];
         proposal.signs++;
-        if (proposal.signs == proposal.reqsigns) {
+        if (proposal.signs == requiredSigns()) {
             proposal.status = Status.QUEUED; // block status
             proposal.eta = ITimelock(timelock).delay() + block.timestamp;
             TimelockLibrary.Transaction memory tx;
@@ -141,9 +146,16 @@ contract Multisig is Signable {
                 ITimelock(timelock).queueTransaction(tx);
             }
         }
+
+        emit Signed(_proposalId, msg.sender);
     }
 
-    function execute(uint _proposalId) public payable onlySigner {
+    // _paidFromStorage - if call withdraw or ether should be paid from storage contract
+    function execute(uint _proposalId, bool _paidFromStorage) public payable onlySigner {
+        if (_paidFromStorage) {
+            require(msg.value == 0, "Pay from storage");
+        }
+
         require(
             getStatus(_proposalId) == Status.QUEUED,
             "Wrong status"
@@ -161,8 +173,10 @@ contract Multisig is Signable {
             tx.hash = keccak256(abi.encode(_proposalId, i, tx.target, tx.value, tx.signature, tx.data, tx.eta));
             tx.callFrom = proposal.callFrom;
 
-            ITimelock(timelock).executeTransaction(tx);
+            ITimelock(timelock).executeTransaction{value: (_paidFromStorage) ? 0 : tx.value}(tx);
         }
+
+        emit Executed(_proposalId);
     }
 
     function cancel(uint _proposalId) public {
@@ -189,5 +203,7 @@ contract Multisig is Signable {
 
             ITimelock(timelock).cancelTransaction(tx);
         }
+
+        emit Cancelled(_proposalId);
     }
 }
