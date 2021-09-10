@@ -217,4 +217,14 @@ contract Multisig is Signable {
 
         return Status.EMPTY;
     }
+
+    // @dev method should be called only from timelock contract.
+    // Use this one for changes admin data.
+    function adminCall(bytes memory data) public {
+        require(msg.sender == timelock, "Only timelock");
+
+        (bool success, ) = address(this).call(data);
+
+        require(success, "admin call failed");
+    }
 }
