@@ -82,8 +82,6 @@ contract Timelock is Ownable {
 
         queuedTransactions[_tx.hash] = false;
 
-        // @dev it doesnt work anyway, so commented
-
         if (_tx.callFrom == safeStorage) {
             // solium-disable-next-line security/no-call-value
             (bool success, bytes memory returnData) = ISafeStorage(safeStorage).execute{value: msg.value}(_tx.target, _tx.value, _tx.data);
@@ -108,7 +106,7 @@ contract Timelock is Ownable {
     }
 
     modifier onlyThis() {
-        require(msg.sender == address(this), "Call must come from this contract.");
+        require(msg.sender == address(this), "Timelock: Call must come from this contract.");
         _;
     }
 }
