@@ -60,11 +60,7 @@ contract Signable {
         emit SignerChanged(_account, address(0));
     }
 
-    function flipSignerAddress(address _old, address _new) public {
-        if (msg.sender != address(this)) {
-            require(_old == msg.sender, "no flip rights");
-        }
-
+    function flipSignerAddress(address _old, address _new) public onlyThis {
         require(_signers[_old], "not signer");
         require(_old != _new, "the same address");
         require(!_signers[_new], "already signer");
