@@ -146,7 +146,7 @@ contract Multisig is Signable {
         emit Executed(_proposalId);
     }
 
-    function cancel(uint _proposalId) public {
+    function cancel(uint _proposalId) external onlySigner {
         Status status = getStatus(_proposalId);
 
         require(
