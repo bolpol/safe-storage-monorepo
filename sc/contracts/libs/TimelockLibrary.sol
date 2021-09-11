@@ -7,11 +7,11 @@ library TimelockLibrary {
         address callFrom;
         bytes32 hash;
         address target;
-        uint value;
+        uint256 value;
         string signature;
         bytes data;
-        uint eta;
+        uint256 eta;
     }
 
-    uint public constant GRACE_PERIOD = 14 days;
+    uint256 public constant GRACE_PERIOD = 14 days;
 }

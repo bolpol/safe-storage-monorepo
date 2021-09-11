@@ -8,12 +8,7 @@ import "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
 import "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract SafeStorage is
-    ERC165Storage,
-    Ownable,
-    ERC721Holder,
-    ERC1155Holder
-{
+contract SafeStorage is ERC165Storage, Ownable, ERC721Holder, ERC1155Holder {
     event Received(address indexed from, uint256 indexed amount);
     event ReceivedFallback(address indexed from, uint256 indexed amount);
 
@@ -29,14 +24,21 @@ contract SafeStorage is
         }
     }
 
-    function execute(address _target, uint _value, bytes memory _data)
+    function execute(
+        address _target,
+        uint256 _value,
+        bytes memory _data
+    )
         external
         payable
         virtual
         onlyOwner
         returns (bool success, bytes memory result)
     {
-        require(address(this).balance + msg.value >= _value, "low ether balance");
+        require(
+            address(this).balance + msg.value >= _value,
+            "low ether balance"
+        );
 
         (success, result) = _target.call{value: _value}(_data);
 
@@ -58,7 +60,7 @@ contract SafeStorage is
         returns (bool)
     {
         return
-        ERC1155Receiver.supportsInterface(interfaceId) ||
-        ERC165Storage.supportsInterface(interfaceId);
+            ERC1155Receiver.supportsInterface(interfaceId) ||
+            ERC165Storage.supportsInterface(interfaceId);
     }
 }

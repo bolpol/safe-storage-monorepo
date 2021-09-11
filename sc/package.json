@@ -18,7 +18,16 @@
     "hardhat-contract-sizer": "^2.0.3",
     "ts-node": "^9.1.1",
     "typescript": "^4.2.2",
-    "bn.js": "^5.2.0"
+    "bn.js": "^5.2.0",
+    "eslint": "^7.30.0",
+    "eslint-config-standard": "^14.1.1",
+    "eslint-plugin-import": "^2.22.0",
+    "eslint-plugin-node": "^11.1.0",
+    "eslint-plugin-promise": "^4.0.1",
+    "eslint-plugin-standard": "^4.0.0",
+    "prettier": "^2.3.2",
+    "prettier-plugin-solidity": "^1.0.0-beta.15",
+    "solhint": "^3.3.6"
   },
   "dependencies": {
     "@nomiclabs/hardhat-solhint": "^2.0.0",
@@ -28,6 +37,10 @@
     "build": "npx hardhat compile",
     "dev": "npx hardhat node",
     "test": "npx hardhat test",
-    "dist": "npx waffle flatten"
+    "dist": "npx waffle flatten",
+    "lint": "solhint 'contracts/**/*.sol' --ignore-path .solhintignore",
+    "prettier": "npx prettier --write 'contracts/**/*.sol'",
+    "lint:js": "eslint .",
+    "lint:js:fix": "eslint . --fix"
   }
 }

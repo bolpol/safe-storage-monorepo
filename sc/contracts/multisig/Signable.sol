@@ -3,22 +3,25 @@
 pragma solidity ^0.8.4;
 
 contract Signable {
-    uint256 constant public MIN_NUM_SIGNERS = 4;
-    uint256 constant public MAX_NUM_SIGNERS = 100;
-    uint256 constant public TIME_FOR_SIGNING = 1 days;
+    uint256 public constant MIN_NUM_SIGNERS = 4;
+    uint256 public constant MAX_NUM_SIGNERS = 100;
+    uint256 public constant TIME_FOR_SIGNING = 1 days;
 
     uint256 public totalSigners;
 
     uint256 private _requiredSigns;
 
-    mapping (address => bool) private _signers;
+    mapping(address => bool) private _signers;
 
     event SignerChanged(address prev, address next);
 
     constructor(address[] memory _accounts) {
-        require(_accounts.length >= MIN_NUM_SIGNERS, "Num signers consensus not reached");
+        require(
+            _accounts.length >= MIN_NUM_SIGNERS,
+            "Num signers consensus not reached"
+        );
 
-        for (uint i; i < _accounts.length; i++) {
+        for (uint256 i; i < _accounts.length; i++) {
             _setSigner(_accounts[i], true);
         }
 
@@ -26,20 +29,21 @@ contract Signable {
         _requiredSigns = 3;
     }
 
-    function requiredSigns() public view returns (uint) {
+    function requiredSigns() public view returns (uint256) {
         if (_requiredSigns > totalSigners) {
             return _requiredSigns;
         }
 
-        return (_requiredSigns < totalSigners * 3 / 4)
-            ? totalSigners * 3 / 4
-            : _requiredSigns;
+        return
+            (_requiredSigns < (totalSigners * 3) / 4)
+                ? (totalSigners * 3) / 4
+                : _requiredSigns;
     }
 
     // @dev should be called if it is possible as second method in batch transaction
     // on add/remove call.
-    function setRequiredSigns(uint _signs) public onlyThis {
-        uint consRS = totalSigners * 3 / 4;
+    function setRequiredSigns(uint256 _signs) public onlyThis {
+        uint256 consRS = (totalSigners * 3) / 4;
 
         require(_signs <= totalSigners && _signs >= consRS, "CONS_REQU_SIGNS");
 
@@ -86,7 +90,10 @@ contract Signable {
     }
 
     modifier onlyThis() {
-        require(msg.sender == address(this), "Call must come from this contract.");
+        require(
+            msg.sender == address(this),
+            "Call must come from this contract."
+        );
         _;
     }
 }
