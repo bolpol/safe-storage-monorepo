@@ -100,17 +100,17 @@ contract Multisig is Signable {
         if (proposal.signs == requiredSigns()) {
             proposal.status = Status.QUEUED; // block status
             proposal.eta = ITimelock(timelock).delay() + block.timestamp;
-            TimelockLibrary.Transaction memory tx;
+            TimelockLibrary.Transaction memory txn;
             for (uint i; i < proposal.targets.length; i++) {
-                tx.target = proposal.targets[i];
-                tx.value = proposal.values[i];
-                tx.signature = proposal.signatures[i];
-                tx.data = proposal.calldatas[i];
-                tx.eta = proposal.eta;
-                tx.hash = keccak256(abi.encode(_proposalId, i, tx.target, tx.value, tx.signature, tx.data, tx.eta));
-                tx.callFrom = proposal.callFrom;
+                txn.target = proposal.targets[i];
+                txn.value = proposal.values[i];
+                txn.signature = proposal.signatures[i];
+                txn.data = proposal.calldatas[i];
+                txn.eta = proposal.eta;
+                txn.hash = keccak256(abi.encode(_proposalId, i, txn.target, txn.value, txn.signature, txn.data, txn.eta));
+                txn.callFrom = proposal.callFrom;
 
-                ITimelock(timelock).queueTransaction(tx);
+                ITimelock(timelock).queueTransaction(txn);
             }
         }
 
@@ -130,17 +130,17 @@ contract Multisig is Signable {
 
         Proposal storage proposal = proposals[_proposalId];
         proposal.status = Status.EXECUTED; // block status
-        TimelockLibrary.Transaction memory tx;
+        TimelockLibrary.Transaction memory txn;
         for (uint i; i < proposal.targets.length; i++) {
-            tx.target = proposal.targets[i];
-            tx.value = proposal.values[i];
-            tx.signature = proposal.signatures[i];
-            tx.data = proposal.calldatas[i];
-            tx.eta = proposal.eta;
-            tx.hash = keccak256(abi.encode(_proposalId, i, tx.target, tx.value, tx.signature, tx.data, tx.eta));
-            tx.callFrom = proposal.callFrom;
+            txn.target = proposal.targets[i];
+            txn.value = proposal.values[i];
+            txn.signature = proposal.signatures[i];
+            txn.data = proposal.calldatas[i];
+            txn.eta = proposal.eta;
+            txn.hash = keccak256(abi.encode(_proposalId, i, txn.target, txn.value, txn.signature, txn.data, txn.eta));
+            txn.callFrom = proposal.callFrom;
 
-            ITimelock(timelock).executeTransaction{value: (_paidFromStorage) ? 0 : tx.value}(tx);
+            ITimelock(timelock).executeTransaction{value: (_paidFromStorage) ? 0 : txn.value}(txn);
         }
 
         emit Executed(_proposalId);
@@ -158,17 +158,17 @@ contract Multisig is Signable {
         Proposal storage proposal = proposals[_proposalId];
         proposal.status = Status.CANCELLED;
 
-        TimelockLibrary.Transaction memory tx;
+        TimelockLibrary.Transaction memory txn;
         for (uint i; i < proposal.targets.length; i++) {
-            tx.target = proposal.targets[i];
-            tx.value = proposal.values[i];
-            tx.signature = proposal.signatures[i];
-            tx.data = proposal.calldatas[i];
-            tx.eta = proposal.eta;
-            tx.hash = keccak256(abi.encode(_proposalId, i, tx.target, tx.value, tx.signature, tx.data, tx.eta));
-            tx.callFrom = proposal.callFrom;
+            txn.target = proposal.targets[i];
+            txn.value = proposal.values[i];
+            txn.signature = proposal.signatures[i];
+            txn.data = proposal.calldatas[i];
+            txn.eta = proposal.eta;
+            txn.hash = keccak256(abi.encode(_proposalId, i, txn.target, txn.value, txn.signature, txn.data, txn.eta));
+            txn.callFrom = proposal.callFrom;
 
-            ITimelock(timelock).cancelTransaction(tx);
+            ITimelock(timelock).cancelTransaction(txn);
         }
 
         emit Cancelled(_proposalId);

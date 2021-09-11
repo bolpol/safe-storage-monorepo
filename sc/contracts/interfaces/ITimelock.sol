@@ -4,9 +4,9 @@ import "../libs/TimelockLibrary.sol";
 
 interface ITimelock {
     function delay() external view returns (uint);
-    function queueTransaction(TimelockLibrary.Transaction calldata tx) external;
-    function cancelTransaction(TimelockLibrary.Transaction calldata tx) external;
-    function executeTransaction(TimelockLibrary.Transaction calldata tx) external payable returns (bytes memory);
+    function queueTransaction(TimelockLibrary.Transaction calldata txn) external;
+    function cancelTransaction(TimelockLibrary.Transaction calldata txn) external;
+    function executeTransaction(TimelockLibrary.Transaction calldata txn) external payable returns (bytes memory);
     function acceptAdmin() external;
     function setPendingAdmin(address pendingAdmin_) external;
     function queuedTransactions(bytes32) external view returns (bool);
