@@ -65,6 +65,13 @@ contract Multisig is Signable {
         string memory description,
         address callFrom // Pass SAFE STORAGE address if want interact with it
     ) external onlySigner {
+        require(
+            targets.length == values.length &&
+            targets.length == signatures.length &&
+            targets.length == calldatas.length,
+            "Wrong arrays length"
+        );
+
         Proposal memory proposal;
         proposal.targets = targets;
         proposal.values = values;
