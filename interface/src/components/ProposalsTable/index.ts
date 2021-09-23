@@ -1,0 +1,1 @@
+export {default as ProposalTable} from './ProposalsTable.module.scss'

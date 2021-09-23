@@ -1,0 +1,54 @@
+.CreateProposal {
+  margin-top: 40px;
+}
+
+.ProposalDetails {
+  margin-bottom: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  justify-content: flex-start;
+  align-content: flex-start;
+}
+
+.ProposalColumn {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  @media (min-width: 568px) {
+    max-width: calc(50% - 15px);
+    &:nth-child(1) {
+      margin-right: 15px;
+    }
+    &:nth-child(2) {
+      margin-left: 15px;
+    }
+  }
+  textarea{
+    height: 100%;
+    min-height: 70px;
+  }
+}
+
+.ButtonBlock {
+  margin-top: 8px;
+  display: flex;
+  justify-content: flex-end;
+  align-content: center;
+  align-items: center;
+  width: 100%;
+}
+.Left {
+  display: flex;
+  justify-content: flex-start;
+  align-content: center;
+  align-items: center;
+  margin-right: 8px;
+}
+
+.ButtonDesc {
+  font-size: 14px;
+  line-height: 1.2;
+  color: #000;
+  margin: 0 8px 0 0;
+}
