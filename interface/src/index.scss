@@ -1,0 +1,111 @@
+@import './styles/var';
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+.container {
+  display: block;
+  margin: 0 auto;
+  width: 100%;
+  max-width: 1200px;
+  padding: 0 15px;
+}
+
+.button {
+  box-sizing: border-box;
+  padding: 8px 16px;
+  display: flex;
+  align-content: center;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  font-size: 16px;
+  line-height: 1;
+  border: 1px solid rgb(34,34,34);
+  cursor: pointer;
+  background-color: transparent;
+  color: #000000;
+  transition: all .25s ease-out;
+  &:hover, &:focus {
+    background-color: rgb(34,34,34);
+    color: #fff;
+  }
+  &:active {
+    background-color: rgb(25,25,25);
+    color: #fff;
+  }
+  &:disabled {
+    opacity: .6;
+  }
+}
+
+.card {
+  border-radius: 1rem;
+  background-color: $cardBG;
+  padding: 16px;
+  color: #000;
+  &-title {
+    font-size: 18px;
+    line-height: 1.2;
+    color: #000;
+  }
+  &-subtitle {
+    display: flex;
+    align-content: center;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    font-size: 16px;
+    line-height: 1.2;
+    color: #000;
+    button {
+      margin-left: 8px;
+    }
+  }
+}
+
+.label {
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+.input {
+  border: 1px solid rgb(34,34,34);
+  margin-bottom: 8px;
+  padding: 8px;
+  box-sizing: border-box;
+  font-size: 14px;
+  line-height: 1.2;
+  outline: none;
+  transition: all .25s ease-out;
+  &:focus {
+    border-color: #1192ca;
+  }
+  &:hover {
+    border-color: #113fca;
+  }
+  &.success {
+    border-color: #5ff81e;
+  }
+  &.error {
+    border-color: #f81e1e;
+  }
+}
+
+.error-message {
+  font-size: 12px;
+  line-height: 1;
+  margin-bottom: 4px;
+  color: #f81e1e;
+  margin-top: 0;
+}
