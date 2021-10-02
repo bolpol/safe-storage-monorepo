@@ -121,7 +121,7 @@ export function useMultisig() {
                     setProposals(proposalsData)
                 })
                 .catch((e: any) => {
-                    console.log('error', e.data.message || e.message || e);
+                    console.log('error', e.data?.message || e.message || e);
                 })
         }
     }, [getStatusProps, multicallContract, multisigContract.interface, proposalsIds, proposalsProps, blockNumber])
@@ -144,7 +144,7 @@ export function useMultisig() {
                 })
                 .catch((e: any) => {
                     showAlert({
-                        text: `Create Sign failed: ${e.data.message || e.message || e}`,
+                        text: `Create Sign failed: ${e.data?.message || e.message || e}`,
                         cls: classAlert.error
                     })
                 })
@@ -174,7 +174,6 @@ export function useMultisig() {
                     sign: true
                 }
             })
-            console.log(proposalId)
             multisigContract.sign(proposalId, {from: account})
                 .then(async (res: any) => {
                     const result = await res.wait()
@@ -185,7 +184,7 @@ export function useMultisig() {
                 })
                 .catch((e: any) => {
                     showAlert({
-                        text: `Sign failed: ${e.data.message || e.message || e}`,
+                        text: `Sign failed: ${e.data?.message || e.message || e}`,
                         cls: classAlert.error
                     })
                 })
@@ -217,7 +216,7 @@ export function useMultisig() {
                 })
                 .catch((e: any) => {
                     showAlert({
-                        text: `Execute failed: ${e.data.message || e.message || e}`,
+                        text: `Execute failed: ${e.data?.message || e.message || e}`,
                         cls: classAlert.error
                     })
                 })
@@ -247,7 +246,7 @@ export function useMultisig() {
                 })
                 .catch((e: any) => {
                     showAlert({
-                        text: `Cancel failed: ${e.data.message || e.message || e}`,
+                        text: `Cancel failed: ${e.data?.message || e.message || e}`,
                         cls: classAlert.error
                     })
                 })
