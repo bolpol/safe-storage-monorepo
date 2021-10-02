@@ -134,24 +134,24 @@ export function useMultisig() {
                     create: true
                 }
             })
-            // multisigContract.createAndSign(proposal, {from: account})
-            //     .then(async (res: any) => {
-            //         const result = await res.wait()
-            //         showAlert({
-            //             text: `Create Sign ${result.status === 1 ? 'success' : 'failed'} ${shortAddress(res.hash)}`,
-            //             cls: result.status === 1 ? classAlert.success : classAlert.error
-            //         })
-            //     })
-            //     .catch((e: any) => {
-            //         console.log(e);
-            //     })
-            //     .finally(() =>
-            //         setPending(prevState => {
-            //             return {
-            //                 ...prevState,
-            //                 create: false
-            //             }
-            //         }))
+            multisigContract.createAndSign(...Object.values(proposal), {from: account})
+                .then(async (res: any) => {
+                    const result = await res.wait()
+                    showAlert({
+                        text: `Create Sign ${result.status === 1 ? 'success' : 'failed'} ${shortAddress(res.hash)}`,
+                        cls: result.status === 1 ? classAlert.success : classAlert.error
+                    })
+                })
+                .catch((e: any) => {
+                    console.log(e);
+                })
+                .finally(() =>
+                    setPending(prevState => {
+                        return {
+                            ...prevState,
+                            create: false
+                        }
+                    }))
             setTimeout(() => {
                 setPending(prevState => {
                     return {

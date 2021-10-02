@@ -1,6 +1,5 @@
 import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import classes from './CreateProposal.module.scss';
-import {timelockAddress} from "../../config";
 import {Control, UseFormRegister} from "react-hook-form/dist/types/form";
 import {FieldErrors} from "react-hook-form/dist/types/errors";
 import {useProposal} from "../../hooks/useProposal";
