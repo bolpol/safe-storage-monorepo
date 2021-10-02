@@ -143,7 +143,10 @@ export function useMultisig() {
                     })
                 })
                 .catch((e: any) => {
-                    console.log(e);
+                    showAlert({
+                        text: `Create Sign failed: ${e.message || e}`,
+                        cls: classAlert.error
+                    })
                 })
                 .finally(() =>
                     setPending(prevState => {
@@ -180,7 +183,10 @@ export function useMultisig() {
                     })
                 })
                 .catch((e: any) => {
-                    console.log(e);
+                    showAlert({
+                        text: `Sign failed: ${e.message || e}`,
+                        cls: classAlert.error
+                    })
                 })
                 .finally(() =>
                     setPending(prevState => {
@@ -209,7 +215,10 @@ export function useMultisig() {
                     })
                 })
                 .catch((e: any) => {
-                    console.log(e);
+                    showAlert({
+                        text: `Execute failed: ${e.message || e}`,
+                        cls: classAlert.error
+                    })
                 })
                 .finally(() => setPending(prevState => {
                     return {
@@ -236,7 +245,10 @@ export function useMultisig() {
                     })
                 })
                 .catch((e: any) => {
-                    console.log(e);
+                    showAlert({
+                        text: `Cancel failed: ${e.message || e}`,
+                        cls: classAlert.error
+                    })
                 })
                 .finally(() => setPending(prevState => {
                     return {
